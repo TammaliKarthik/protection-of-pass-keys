@@ -1,7 +1,3 @@
-Certainly! Here is a detailed README file for a GitHub repository on the project "Protecting User Password Keys at Rest (on the Disk)". This README includes sections for project description, installation, usage, and more to help users understand and contribute to the project.
-
----
-
 # Protecting User Password Keys at Rest (on the Disk)
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
