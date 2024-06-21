@@ -1,0 +1,187 @@
+name: Setup Repository
+
+on:
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up directory structure and files
+      run: |
+        mkdir -p src tests docs sample_files
+        touch src/__init__.py
+        touch src/file_encrypt_decrypt.py
+        touch src/utils.py
+        touch tests/__init__.py
+        touch tests/test_file_encrypt_decrypt.py
+        touch docs/README.md
+        echo "This is a sample file for encryption." > sample_files/sample.txt
+        touch sample_files/encrypted_sample.txt
+
+    - name: Create .gitignore
+      run: |
+        echo -e "__pycache__/\n*.pyc\n*.pyo\nenv/" > .gitignore
+
+    - name: Create LICENSE file
+      run: |
+        curl https://opensource.org/licenses/MIT -o LICENSE
+
+    - name: Create README.md
+      run: |
+        cat <<EOL > README.md
+        # Protection of Pass Keys
+
+        ## Project Description
+
+        This project provides a secure method for encrypting and decrypting files using AES-256 encryption. It ensures that the encryption keys derived from user-provided passwords are protected at rest.
+
+        ## Features
+        - AES-256 Encryption
+        - Secure Key Derivation using PBKDF2
+        - User-friendly command-line interface
+
+        ## Prerequisites
+        - Python 3.x
+        - Linux OS (x86-based)
+        - \`cryptography\` library
+
+        ## Installation
+
+        Clone the repository and install dependencies:
+
+        \`\`\`bash
+        git clone https://github.com/${{ github.repository_owner }}/${{ github.repository }}.git
+        cd ${{ github.repository }}
+        pip install cryptography
+        \`\`\`
+
+        ## Usage
+
+        ### Encrypt a File
+
+        \`\`\`bash
+        python src/file_encrypt_decrypt.py encrypt sample_files/sample.txt sample_files/encrypted_sample.txt
+        \`\`\`
+
+        ### Decrypt a File
+
+        \`\`\`bash
+        python src/file_encrypt_decrypt.py decrypt sample_files/encrypted_sample.txt sample_files/decrypted_sample.txt
+        \`\`\`
+
+        ## License
+        This project is licensed under the MIT License.
+        EOL
+
+    - name: Add encryption and decryption script
+      run: |
+        cat <<EOL > src/file_encrypt_decrypt.py
+        import sys
+        from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+        from cryptography.hazmat.backends import default_backend
+        import os
+
+        def derive_key(password, salt):
+            kdf = PBKDF2HMAC(
+                algorithm=hashes.SHA256(),
+                length=32,
+                salt=salt,
+                iterations=100000,
+                backend=default_backend()
+            )
+            return kdf.derive(password.encode())
+
+        def encrypt_file(input_file, output_file, password):
+            salt = os.urandom(16)
+            key = derive_key(password, salt)
+            iv = os.urandom(16)
+            cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
+            encryptor = cipher.encryptor()
+
+            with open(input_file, 'rb') as f:
+                plaintext = f.read()
+
+            encrypted = encryptor.update(plaintext) + encryptor.finalize()
+
+            with open(output_file, 'wb') as f:
+                f.write(salt + iv + encrypted)
+
+        def decrypt_file(input_file, output_file, password):
+            with open(input_file, 'rb') as f:
+                salt = f.read(16)
+                iv = f.read(16)
+                ciphertext = f.read()
+
+            key = derive_key(password, salt)
+            cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
+            decryptor = cipher.decryptor()
+
+            decrypted = decryptor.update(ciphertext) + decryptor.finalize()
+
+            with open(output_file, 'wb') as f:
+                f.write(decrypted)
+
+        if __name__ == "__main__":
+            if len(sys.argv) < 4:
+                print("Usage: python file_encrypt_decrypt.py [encrypt/decrypt] [input_file] [output_file]")
+                sys.exit(1)
+
+            action = sys.argv[1]
+            input_file = sys.argv[2]
+            output_file = sys.argv[3]
+            password = input("Enter password: ")
+
+            if action == "encrypt":
+                encrypt_file(input_file, output_file, password)
+                print(f"File encrypted and saved as {output_file}")
+            elif action == "decrypt":
+                decrypt_file(input_file, output_file, password)
+                print(f"File decrypted and saved as {output_file}")
+            else:
+                print("Invalid action. Use 'encrypt' or 'decrypt'.")
+        EOL
+
+    - name: Add test script
+      run: |
+        cat <<EOL > tests/test_file_encrypt_decrypt.py
+        import unittest
+        from src.file_encrypt_decrypt import encrypt_file, decrypt_file
+
+        class TestFileEncryption(unittest.TestCase):
+            def setUp(self):
+                self.sample_text = "This is a test."
+                self.password = "securepassword"
+                self.input_file = "sample_files/sample.txt"
+                self.encrypted_file = "sample_files/encrypted_sample.txt"
+                self.decrypted_file = "sample_files/decrypted_sample.txt"
+
+                with open(self.input_file, 'w') as f:
+                    f.write(self.sample_text)
+
+            def test_encryption_decryption(self):
+                encrypt_file(self.input_file, self.encrypted_file, self.password)
+                decrypt_file(self.encrypted_file, self.decrypted_file, self.password)
+
+                with open(self.decrypted_file, 'r') as f:
+                    decrypted_text = f.read()
+
+                self.assertEqual(decrypted_text, self.sample_text)
+
+        if __name__ == '__main__':
+            unittest.main()
+        EOL
+
+    - name: Commit and push changes
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add .
+        git commit -m "Setup repository structure and add initial files"
+        git push origin main
