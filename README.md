@@ -54,26 +54,10 @@ This project aims to develop a secure file encryption and decryption application
     ```
 
 ## Usage
+run the included gui file to open an interaface to navigate to the file you wish to encrypt and enter the passphrase
+after the passphrase is passed , the passkey is saved at an undisclosed location
 
-1. **Encrypt a File:**
-
-    To encrypt a file (`sample.txt`) and save the encrypted output as (`encrypted_sample.txt`):
-
-    ```bash
-    python file_encrypt_decrypt.py encrypt sample.txt encrypted_sample.txt
-    ```
-
-    - Enter the password when prompted. The encrypted file will be saved in the specified location.
-
-2. **Decrypt a File:**
-
-    To decrypt a file (`encrypted_sample.txt`) and save the decrypted output as (`decrypted_sample.txt`):
-
-    ```bash
-    python file_encrypt_decrypt.py decrypt encrypted_sample.txt decrypted_sample.txt
-    ```
-
-    - Enter the password when prompted. The decrypted file will be saved in the specified location.
+to open the file , select the encrypted file from the terminal and enter the passphrase and save the decrypted file at a location of your choice
 
 ## Files and Directories
 
